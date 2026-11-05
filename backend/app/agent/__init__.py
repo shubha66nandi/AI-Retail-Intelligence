@@ -1,0 +1,1 @@
+"""Retail intelligence agent components."""
