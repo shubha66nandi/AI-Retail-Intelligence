@@ -4,10 +4,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.database.connection import engine
+from app.database.connection import Base, engine
 from app.models import Product, Sale, Inventory
 
 from app.api.products import router as products_router
+from app.api.sales import router as sales_router
+from app.api.inventory import router as inventory_router
 
 
 # Application configuration
@@ -28,16 +30,20 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+
+# Register API routers
 app.include_router(products_router)
-from app.database.connection import Base, engine
+app.include_router(sales_router)
+app.include_router(inventory_router)
 
 
+# Database table creation
 @app.on_event("startup")
 def create_tables():
     Base.metadata.create_all(bind=engine)
 
+
 # CORS configuration
-# Allows the Streamlit frontend to communicate with FastAPI.
 allowed_origins = [
     "http://localhost:8501",
     "http://127.0.0.1:8501",
