@@ -1,25 +1,45 @@
-from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database.connection import get_db
-from app.models import Sale, Product
+from app.models import Sale, Product, Inventory
 from app.schemas.sale import SaleCreate, SaleUpdate, SaleResponse
 
 
 router = APIRouter(prefix="/sales", tags=["Sales"])
 
 
-# Create sale
+# Create sale and reduce inventory
 @router.post("/", response_model=SaleResponse, status_code=201)
 def create_sale(data: SaleCreate, db: Session = Depends(get_db)):
 
     product = db.get(Product, data.product_id)
 
     if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Product not found",
+        )
+
+    inventory = db.scalars(
+        select(Inventory).where(
+            Inventory.product_id == data.product_id
+        )
+    ).first()
+
+    if not inventory:
+        raise HTTPException(
+            status_code=404,
+            detail="Inventory record not found for this product",
+        )
+
+    if inventory.quantity < data.quantity:
+        raise HTTPException(
+            status_code=409,
+            detail="Insufficient stock",
+        )
 
     sale = Sale(
         product_id=data.product_id,
@@ -28,9 +48,19 @@ def create_sale(data: SaleCreate, db: Session = Depends(get_db)):
         total_amount=data.quantity * data.unit_price,
     )
 
-    db.add(sale)
-    db.commit()
-    db.refresh(sale)
+    try:
+        inventory.quantity -= data.quantity
+
+        db.add(sale)
+        db.commit()
+        db.refresh(sale)
+
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to create sale and update inventory",
+        )
 
     return sale
 
@@ -48,7 +78,10 @@ def get_sale(sale_id: int, db: Session = Depends(get_db)):
     sale = db.get(Sale, sale_id)
 
     if not sale:
-        raise HTTPException(status_code=404, detail="Sale not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Sale not found",
+        )
 
     return sale
 
@@ -64,7 +97,10 @@ def update_sale(
     sale = db.get(Sale, sale_id)
 
     if not sale:
-        raise HTTPException(status_code=404, detail="Sale not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Sale not found",
+        )
 
     updates = data.model_dump(exclude_unset=True)
 
@@ -73,8 +109,16 @@ def update_sale(
 
     sale.total_amount = sale.quantity * sale.unit_price
 
-    db.commit()
-    db.refresh(sale)
+    try:
+        db.commit()
+        db.refresh(sale)
+
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to update sale",
+        )
 
     return sale
 
@@ -86,7 +130,18 @@ def delete_sale(sale_id: int, db: Session = Depends(get_db)):
     sale = db.get(Sale, sale_id)
 
     if not sale:
-        raise HTTPException(status_code=404, detail="Sale not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Sale not found",
+        )
 
-    db.delete(sale)
-    db.commit()
+    try:
+        db.delete(sale)
+        db.commit()
+
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to delete sale",
+        )

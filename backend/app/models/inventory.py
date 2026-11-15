@@ -1,8 +1,10 @@
+
+from datetime import datetime
+
 from sqlalchemy import Integer, ForeignKey, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.connection import Base
-from datetime import datetime
 
 
 class Inventory(Base):
@@ -22,6 +24,10 @@ class Inventory(Base):
 
     reorder_level: Mapped[int] = mapped_column(
         Integer, default=10, nullable=False
+    )
+
+    target_stock: Mapped[int] = mapped_column(
+        Integer, nullable=False
     )
 
     last_updated: Mapped[datetime] = mapped_column(
