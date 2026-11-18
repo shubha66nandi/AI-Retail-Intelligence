@@ -34,8 +34,6 @@ FEATURES = [
     "rolling_std_28",
     "day_of_week",
     "month",
-    "sell_price",
-    "price_missing",
     "price_change_pct",
     "snap_CA",
     "event_national",

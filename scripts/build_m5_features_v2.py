@@ -84,7 +84,7 @@ features = [
     "day_of_week", "month", "snap_CA",
     "event_national", "event_religious",
     "event_cultural", "event_sporting",
-    "sell_price", "price_missing", "price_change_pct",
+    "price_change_pct",
 ]
 
 df[features].to_csv(OUTPUT, index=False)
