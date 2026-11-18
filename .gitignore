@@ -29,3 +29,20 @@ venv/
 # Operating system
 .DS_Store
 Thumbs.db
+# Raw and processed datasets
+data/raw/*
+!data/raw/.gitkeep
+
+data/processed/*
+!data/processed/.gitkeep
+
+# M5 forecasting datasets
+data/raw/m5/
+data/processed/m5/
+
+# Generated ML models
+*.joblib
+*.pkl
+
+# Generated forecasting results
+models/
